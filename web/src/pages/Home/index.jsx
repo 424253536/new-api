@@ -17,53 +17,72 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
-  Button,
-  Typography,
-  Input,
-  ScrollList,
-  ScrollItem,
-} from '@douyinfe/semi-ui';
-import { API, showError, copy, showSuccess } from '../../helpers';
-import { useIsMobile } from '../../hooks/common/useIsMobile';
+  API,
+  copy,
+  getLogo,
+  getSystemName,
+  showError,
+  showSuccess,
+} from '../../helpers';
 import { API_ENDPOINTS } from '../../constants/common.constant';
+import { useIsMobile } from '../../hooks/common/useIsMobile';
 import { StatusContext } from '../../context/Status';
 import { useActualTheme } from '../../context/Theme';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
-import {
-  IconGithubLogo,
-  IconPlay,
-  IconFile,
-  IconCopy,
-} from '@douyinfe/semi-icons';
+import { IconCopy, IconGithubLogo, IconPlay } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
 import NoticeModal from '../../components/layout/NoticeModal';
-import {
-  Moonshot,
-  OpenAI,
-  XAI,
-  Zhipu,
-  Volcengine,
-  Cohere,
-  Claude,
-  Gemini,
-  Suno,
-  Minimax,
-  Wenxin,
-  Spark,
-  Qingyan,
-  DeepSeek,
-  Qwen,
-  Midjourney,
-  Grok,
-  AzureAI,
-  Hunyuan,
-  Xinference,
-} from '@lobehub/icons';
+import { animate, createScope, createTimeline, stagger, utils } from 'animejs';
+import './home.css';
 
-const { Text } = Typography;
+const PROVIDER_PILLS = [
+  'OpenAI',
+  'Claude',
+  'Gemini',
+  'DeepSeek',
+  'Anthropic',
+  'Azure',
+  'Bedrock',
+  'Moonshot',
+  'Qwen',
+  'Cohere',
+  'Vertex AI',
+  'Groq',
+];
+
+const BAR_LEVELS = [28, 46, 58, 74, 52, 82, 64, 88];
+
+const QUICK_COMMANDS = [
+  {
+    key: 'route.request',
+    hint: 'Ctrl K',
+    desc: '智能选择最优上游与 fallback',
+  },
+  {
+    key: 'copy.base_url',
+    hint: 'SDK',
+    desc: '复制统一基址，直接替换现有接入',
+  },
+  {
+    key: 'inspect.billing',
+    hint: 'Live',
+    desc: '查看额度、账单与实时用量状态',
+  },
+  {
+    key: 'tail.logs',
+    hint: 'Logs',
+    desc: '审计日志与路由轨迹统一可追溯',
+  },
+];
+
+const renderAnimatedTitle = (text, className) => (
+  <span className={`nh-title-line ${className}`} data-text={text}>
+    {text}
+  </span>
+);
 
 const Home = () => {
   const { t, i18n } = useTranslation();
@@ -72,14 +91,25 @@ const Home = () => {
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
   const [homePageContent, setHomePageContent] = useState('');
   const [noticeVisible, setNoticeVisible] = useState(false);
+  const [endpointIndex, setEndpointIndex] = useState(0);
   const isMobile = useIsMobile();
   const isDemoSiteMode = statusState?.status?.demo_site_enabled || false;
-  const docsLink = statusState?.status?.docs_link || '';
   const serverAddress =
     statusState?.status?.server_address || `${window.location.origin}`;
-  const endpointItems = API_ENDPOINTS.map((e) => ({ value: e }));
-  const [endpointIndex, setEndpointIndex] = useState(0);
-  const isChinese = i18n.language.startsWith('zh');
+  const systemName = getSystemName();
+  const logo = getLogo();
+
+  const heroRef = useRef(null);
+  const scopeRef = useRef(null);
+  const glowRef = useRef(null);
+  const panelRef = useRef(null);
+
+  const endpointPreview = Array.from({ length: 4 }, (_, offset) => {
+    const nextIndex = (endpointIndex + offset) % API_ENDPOINTS.length;
+    return API_ENDPOINTS[nextIndex];
+  });
+  const activeProviderIndex = endpointIndex % PROVIDER_PILLS.length;
+  const activeCommandIndex = endpointIndex % QUICK_COMMANDS.length;
 
   const displayHomePageContent = async () => {
     setHomePageContent(localStorage.getItem('home_page_content') || '');
@@ -93,7 +123,6 @@ const Home = () => {
       setHomePageContent(content);
       localStorage.setItem('home_page_content', content);
 
-      // 如果内容是 URL，则发送主题模式
       if (data.startsWith('https://')) {
         const iframe = document.querySelector('iframe');
         if (iframe) {
@@ -142,11 +171,181 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    if (homePageContent !== '') {
+      return undefined;
+    }
+
     const timer = setInterval(() => {
-      setEndpointIndex((prev) => (prev + 1) % endpointItems.length);
-    }, 3000);
+      setEndpointIndex((prev) => (prev + 1) % API_ENDPOINTS.length);
+    }, 2800);
+
     return () => clearInterval(timer);
-  }, [endpointItems.length]);
+  }, [homePageContent]);
+
+  useEffect(() => {
+    if (!homePageContentLoaded || homePageContent !== '') return;
+    if (!heroRef.current || scopeRef.current) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      heroRef.current.classList.add('nh-entrance-done');
+      return;
+    }
+
+    scopeRef.current = createScope({ root: heroRef }).add(() => {
+      createTimeline({
+        defaults: { ease: 'out(3)', duration: 860 },
+        onComplete: (self) => {
+          heroRef.current?.classList.add('nh-entrance-done');
+          utils.cleanInlineStyles(self);
+        },
+      })
+        .add('.nh-anim-badge', {
+          opacity: [0, 1],
+          translateY: [24, 0],
+        })
+        .add(
+          '.nh-anim-title',
+          {
+            opacity: [0, 1],
+            translateY: [36, 0],
+            duration: 1040,
+          },
+          120,
+        )
+        .add(
+          '.nh-anim-desc',
+          {
+            opacity: [0, 1],
+            translateY: [24, 0],
+          },
+          260,
+        )
+        .add(
+          '.nh-anim-note',
+          {
+            opacity: [0, 1],
+            translateY: [18, 0],
+          },
+          360,
+        )
+        .add(
+          '.nh-anim-action',
+          {
+            opacity: [0, 1],
+            translateY: [18, 0],
+          },
+          stagger(120, { start: 460 }),
+        )
+        .add(
+          '.nh-anim-strip',
+          {
+            opacity: [0, 1],
+            translateY: [18, 0],
+          },
+          620,
+        )
+        .add(
+          '.nh-anim-panel',
+          {
+            opacity: [0, 1],
+            translateX: [40, 0],
+            translateY: [28, 0],
+            scale: [0.96, 1],
+            duration: 1120,
+          },
+          260,
+        )
+        .add(
+          '.nh-endpoint-item',
+          {
+            opacity: [0, 1],
+            translateX: [24, 0],
+          },
+          stagger(90, { start: 760 }),
+        )
+        .add(
+          '.nh-bar',
+          {
+            opacity: [0, 1],
+            scaleY: [0.65, 1],
+            transformOrigin: ['50% 100%', '50% 100%'],
+          },
+          stagger(70, { start: 860 }),
+        );
+    });
+
+    return () => {
+      scopeRef.current?.revert();
+      scopeRef.current = null;
+    };
+  }, [homePageContentLoaded, homePageContent]);
+
+  useEffect(() => {
+    if (!homePageContentLoaded || homePageContent !== '' || isMobile) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const heroEl = heroRef.current;
+    const panelEl = panelRef.current;
+    if (!heroEl || !panelEl) return;
+
+    const handleMouseMove = (event) => {
+      const rect = heroEl.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const rotateY = (x / rect.width - 0.5) * 10;
+      const rotateX = (0.5 - y / rect.height) * 10;
+
+      panelEl.style.setProperty(
+        '--nh-panel-rotate-x',
+        `${rotateX.toFixed(2)}deg`,
+      );
+      panelEl.style.setProperty(
+        '--nh-panel-rotate-y',
+        `${rotateY.toFixed(2)}deg`,
+      );
+
+      if (glowRef.current) {
+        animate(glowRef.current, {
+          left: `${x}px`,
+          top: `${y}px`,
+          opacity: 1,
+          duration: 260,
+          ease: 'out(3)',
+        });
+      }
+    };
+
+    const handleMouseLeave = () => {
+      panelEl.style.setProperty('--nh-panel-rotate-x', '0deg');
+      panelEl.style.setProperty('--nh-panel-rotate-y', '0deg');
+
+      if (glowRef.current) {
+        animate(glowRef.current, {
+          opacity: 0,
+          duration: 220,
+          ease: 'out(2)',
+        });
+      }
+    };
+
+    heroEl.addEventListener('mousemove', handleMouseMove);
+    heroEl.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      heroEl.removeEventListener('mousemove', handleMouseMove);
+      heroEl.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [homePageContentLoaded, homePageContent, isMobile]);
+
+  const secondaryAction =
+    isDemoSiteMode && statusState?.status?.version
+      ? {
+          icon: <IconGithubLogo />,
+          label: statusState.status.version,
+          onClick: () =>
+            window.open('https://github.com/QuantumNous/new-api', '_blank'),
+        }
+      : null;
 
   return (
     <div className='w-full overflow-x-hidden'>
@@ -156,187 +355,282 @@ const Home = () => {
         isMobile={isMobile}
       />
       {homePageContentLoaded && homePageContent === '' ? (
-        <div className='w-full overflow-x-hidden'>
-          {/* Banner 部分 */}
-          <div className='w-full border-b border-semi-color-border min-h-[500px] md:min-h-[600px] lg:min-h-[700px] relative overflow-x-hidden'>
-            {/* 背景模糊晕染球 */}
-            <div className='blur-ball blur-ball-indigo' />
-            <div className='blur-ball blur-ball-teal' />
-            <div className='flex items-center justify-center h-full px-4 py-20 md:py-24 lg:py-32 mt-10'>
-              {/* 居中内容区 */}
-              <div className='flex flex-col items-center justify-center text-center max-w-4xl mx-auto'>
-                <div className='flex flex-col items-center justify-center mb-6 md:mb-8'>
-                  <h1
-                    className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-semi-color-text-0 leading-tight ${isChinese ? 'tracking-wide md:tracking-wider' : ''}`}
+        <section className='nh-home' data-theme={actualTheme} ref={heroRef}>
+          <div className='nh-grid' aria-hidden='true'></div>
+          <div className='nh-noise' aria-hidden='true'></div>
+          <div className='nh-aurora nh-aurora-one' aria-hidden='true'></div>
+          <div className='nh-aurora nh-aurora-two' aria-hidden='true'></div>
+          <div className='nh-aurora nh-aurora-three' aria-hidden='true'></div>
+          <div className='nh-glow' ref={glowRef} aria-hidden='true'></div>
+
+          <div className='nh-shell'>
+            <div className='nh-copy-column'>
+              <div className='nh-badge nh-anim-el nh-anim-badge'>
+                <span className='nh-badge-dot'></span>
+                <span>{systemName}</span>
+                <span className='nh-badge-separator'></span>
+                <span>AI COMMAND SURFACE</span>
+              </div>
+
+              <h1 className='nh-title nh-anim-el nh-anim-title'>
+                {renderAnimatedTitle(
+                  'Your shortcut to every model.',
+                  'nh-title-muted',
+                )}
+                {renderAnimatedTitle(
+                  'Fast, keyboard-first, reliable.',
+                  'nh-title-strong',
+                )}
+              </h1>
+
+              <p className='nh-desc nh-anim-el nh-anim-desc'>
+                {t('统一的')}
+                <strong>{t('大模型接口网关')}</strong>，
+                {t('聚合 40+ AI 供应商，提供更优惠的价格与更稳定的服务')}
+              </p>
+
+              <p className='nh-footnote nh-anim-el nh-anim-note'>
+                把模型路由、额度、账单和日志都当作命令来操作，保留 OpenAI
+                兼容接入方式，但体验更像一个统一启动器。
+              </p>
+
+              <div className='nh-actions'>
+                <Link
+                  to='/console'
+                  className='nh-btn nh-btn-primary nh-anim-el nh-anim-action'
+                >
+                  <IconPlay />
+                  <span>{t('获取密钥')}</span>
+                </Link>
+
+                {secondaryAction && (
+                  <button
+                    type='button'
+                    className='nh-btn nh-btn-secondary nh-anim-el nh-anim-action'
+                    onClick={secondaryAction.onClick}
                   >
-                    <>
-                      {t('统一的')}
-                      <br />
-                      <span className='shine-text'>{t('大模型接口网关')}</span>
-                    </>
-                  </h1>
-                  <p className='text-base md:text-lg lg:text-xl text-semi-color-text-1 mt-4 md:mt-6 max-w-xl'>
-                    {t('更好的价格，更好的稳定性，只需要将模型基址替换为：')}
-                  </p>
-                  {/* BASE URL 与端点选择 */}
-                  <div className='flex flex-col md:flex-row items-center justify-center gap-4 w-full mt-4 md:mt-6 max-w-md'>
-                    <Input
-                      readonly
-                      value={serverAddress}
-                      className='flex-1 !rounded-full'
-                      size={isMobile ? 'default' : 'large'}
-                      suffix={
-                        <div className='flex items-center gap-2'>
-                          <ScrollList
-                            bodyHeight={32}
-                            style={{ border: 'unset', boxShadow: 'unset' }}
-                          >
-                            <ScrollItem
-                              mode='wheel'
-                              cycled={true}
-                              list={endpointItems}
-                              selectedIndex={endpointIndex}
-                              onSelect={({ index }) => setEndpointIndex(index)}
-                            />
-                          </ScrollList>
-                          <Button
-                            type='primary'
-                            onClick={handleCopyBaseURL}
-                            icon={<IconCopy />}
-                            className='!rounded-full'
-                          />
-                        </div>
-                      }
-                    />
-                  </div>
+                    {secondaryAction.icon}
+                    <span>{secondaryAction.label}</span>
+                  </button>
+                )}
+              </div>
+
+              <div className='nh-metric-strip nh-anim-el nh-anim-strip'>
+                <div className='nh-metric-item'>
+                  <strong>40+</strong>
+                  <span>Providers</span>
+                </div>
+                <div className='nh-metric-item'>
+                  <strong>{API_ENDPOINTS.length}</strong>
+                  <span>Endpoints</span>
+                </div>
+                <div className='nh-metric-item'>
+                  <strong>Unified</strong>
+                  <span>Auth / Billing / Logs</span>
+                </div>
+              </div>
+            </div>
+
+            <div className='nh-showcase-grid'>
+              <div className='nh-launcher-board nh-anim-el nh-anim-strip'>
+                <div className='nh-card-topline'>
+                  <span>QUICK COMMANDS</span>
+                  <span>Raycast style launcher</span>
                 </div>
 
-                {/* 操作按钮 */}
-                <div className='flex flex-row gap-4 justify-center items-center'>
-                  <Link to='/console'>
-                    <Button
-                      theme='solid'
-                      type='primary'
-                      size={isMobile ? 'default' : 'large'}
-                      className='!rounded-3xl px-8 py-2'
-                      icon={<IconPlay />}
+                <div className='nh-launcher-prompt'>
+                  <div className='nh-launcher-prompt-main'>
+                    <span className='nh-launcher-prompt-dot'></span>
+                    <span>{QUICK_COMMANDS[activeCommandIndex].key}</span>
+                  </div>
+                  <span className='nh-launcher-prompt-shortcut'>
+                    {QUICK_COMMANDS[activeCommandIndex].hint}
+                  </span>
+                </div>
+
+                <div className='nh-launcher-list'>
+                  {QUICK_COMMANDS.map((command, index) => (
+                    <div
+                      className={`nh-launcher-item ${index === activeCommandIndex ? 'is-active' : ''}`}
+                      key={command.key}
                     >
-                      {t('获取密钥')}
-                    </Button>
-                  </Link>
-                  {isDemoSiteMode && statusState?.status?.version ? (
-                    <Button
-                      size={isMobile ? 'default' : 'large'}
-                      className='flex items-center !rounded-3xl px-6 py-2'
-                      icon={<IconGithubLogo />}
-                      onClick={() =>
-                        window.open(
-                          'https://github.com/QuantumNous/new-api',
-                          '_blank',
-                        )
-                      }
-                    >
-                      {statusState.status.version}
-                    </Button>
-                  ) : (
-                    docsLink && (
-                      <Button
-                        size={isMobile ? 'default' : 'large'}
-                        className='flex items-center !rounded-3xl px-6 py-2'
-                        icon={<IconFile />}
-                        onClick={() => window.open(docsLink, '_blank')}
+                      <div className='nh-launcher-copy'>
+                        <strong>{command.key}</strong>
+                        <span>{command.desc}</span>
+                      </div>
+                      <span className='nh-launcher-shortcut'>
+                        {command.hint}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className='nh-provider-strip'>
+                  <span className='nh-provider-label'>Connected providers</span>
+                  <div className='nh-provider-grid'>
+                    {PROVIDER_PILLS.map((provider, index) => (
+                      <span
+                        className={`nh-provider-pill ${index === activeProviderIndex ? 'is-active' : ''}`}
+                        key={provider}
                       >
-                        {t('文档')}
-                      </Button>
-                    )
-                  )}
-                </div>
-
-                {/* 框架兼容性图标 */}
-                <div className='mt-12 md:mt-16 lg:mt-20 w-full'>
-                  <div className='flex items-center mb-6 md:mb-8 justify-center'>
-                    <Text
-                      type='tertiary'
-                      className='text-lg md:text-xl lg:text-2xl font-light'
-                    >
-                      {t('支持众多的大模型供应商')}
-                    </Text>
+                        {provider}
+                      </span>
+                    ))}
                   </div>
-                  <div className='flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 max-w-5xl mx-auto px-4'>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Moonshot size={40} />
+                </div>
+              </div>
+
+              <div className='nh-panel-wrap nh-anim-el nh-anim-panel'>
+                <div className='nh-panel' ref={panelRef}>
+                  <div className='nh-panel-shine' aria-hidden='true'></div>
+                  <div className='nh-panel-grid' aria-hidden='true'></div>
+
+                  <div className='nh-card-topline'>
+                    <span>COMMAND PALETTE</span>
+                    <span>Keyboard-first control center</span>
+                  </div>
+
+                  <div className='nh-panel-head'>
+                    <div className='nh-panel-brand'>
+                      <img
+                        src={logo}
+                        alt={systemName}
+                        className='nh-panel-logo'
+                      />
+                      <div>
+                        <div className='nh-panel-name'>{systemName}</div>
+                        <div className='nh-panel-subcopy'>
+                          Unified AI gateway
+                        </div>
+                      </div>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <OpenAI size={40} />
+
+                    <div className='nh-status-pill'>
+                      <span className='nh-status-dot'></span>
+                      Ready to route
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <XAI size={40} />
+                  </div>
+
+                  <div className='nh-command-card'>
+                    <div className='nh-command-content'>
+                      <span className='nh-command-method'>CMD</span>
+                      <div className='nh-command-url'>
+                        <span>Quick launch</span>
+                        <code>{`route.request --endpoint ${endpointPreview[0]}`}</code>
+                      </div>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Zhipu.Color size={40} />
+
+                    <button
+                      type='button'
+                      className='nh-command-copy'
+                      onClick={handleCopyBaseURL}
+                      aria-label='复制基址'
+                      title='复制基址'
+                    >
+                      <IconCopy />
+                    </button>
+                  </div>
+
+                  <div className='nh-command-hint'>
+                    <span>Base URL</span>
+                    <code>{serverAddress}</code>
+                  </div>
+
+                  <div className='nh-stat-grid'>
+                    <div className='nh-stat-card'>
+                      <span>Routing</span>
+                      <strong>Adaptive</strong>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Volcengine.Color size={40} />
+                    <div className='nh-stat-card'>
+                      <span>Billing</span>
+                      <strong>Realtime</strong>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Cohere.Color size={40} />
+                    <div className='nh-stat-card'>
+                      <span>Audit</span>
+                      <strong>Always on</strong>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Claude.Color size={40} />
+                  </div>
+
+                  <div className='nh-panel-layout'>
+                    <div className='nh-route-card'>
+                      <div className='nh-section-head'>
+                        <span className='nh-section-label'>
+                          Command results
+                        </span>
+                        <span className='nh-section-tag'>CTRL K</span>
+                      </div>
+
+                      <div className='nh-flow-row'>
+                        <span className='nh-flow-chip'>request.input</span>
+                        <span className='nh-flow-arrow'></span>
+                        <span className='nh-flow-chip'>{systemName}.route</span>
+                        <span className='nh-flow-arrow'></span>
+                        <span className='nh-flow-chip'>
+                          provider.auto.select
+                        </span>
+                      </div>
+
+                      <div className='nh-endpoint-list'>
+                        {endpointPreview.map((endpoint, index) => (
+                          <div
+                            className={`nh-endpoint-item ${index === 0 ? 'is-active' : ''}`}
+                            key={endpoint}
+                          >
+                            <code>{endpoint}</code>
+                            <span>{index === 0 ? 'Active' : 'Ready'}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Gemini.Color size={40} />
+
+                    <div className='nh-health-card'>
+                      <div className='nh-section-head'>
+                        <span className='nh-section-label'>Live modules</span>
+                        <span className='nh-section-tag'>ONLINE</span>
+                      </div>
+
+                      <div className='nh-health-list'>
+                        <div className='nh-health-row'>
+                          <span>Fallback</span>
+                          <strong>Enabled</strong>
+                        </div>
+                        <div className='nh-health-row'>
+                          <span>Quota sync</span>
+                          <strong>Instant</strong>
+                        </div>
+                        <div className='nh-health-row'>
+                          <span>Logs</span>
+                          <strong>Structured</strong>
+                        </div>
+                      </div>
+
+                      <div className='nh-bars'>
+                        {BAR_LEVELS.map((level, index) => (
+                          <span
+                            className='nh-bar'
+                            key={`${level}-${index}`}
+                            style={{
+                              '--nh-bar-height': `${level}%`,
+                              animationDelay: `${index * 120}ms`,
+                            }}
+                          ></span>
+                        ))}
+                      </div>
                     </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Suno size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Minimax.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Wenxin.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Spark.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Qingyan.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <DeepSeek.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Qwen.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Midjourney size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Grok size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <AzureAI.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Hunyuan.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Xinference.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Typography.Text className='!text-lg sm:!text-xl md:!text-2xl lg:!text-3xl font-bold'>
-                        30+
-                      </Typography.Text>
-                    </div>
+                  </div>
+
+                  <div className='nh-panel-footer'>
+                    <span>{API_ENDPOINTS.length} compatible endpoints</span>
+                    <span>Auth · Billing · Logs</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       ) : (
         <div className='overflow-x-hidden w-full'>
-          {homePageContent.startsWith('https://') ? (
+          {homePageContent && homePageContent.startsWith('https://') ? (
             <iframe
               src={homePageContent}
               className='w-full h-screen border-none'
