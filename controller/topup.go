@@ -27,14 +27,15 @@ func GetTopUpInfo(c *gin.Context) {
 	// 获取支付方式
 	payMethods := operation_setting.PayMethods
 	paymentSetting := operation_setting.GetPaymentSetting()
-	bankAccountName := strings.TrimSpace(paymentSetting.BankAccountName)
-	bankName := strings.TrimSpace(paymentSetting.BankName)
-	bankAccount := strings.TrimSpace(paymentSetting.BankAccount)
-	showBankAccount := paymentSetting.ShowBankAccount &&
-		bankAccountName != "" &&
-		bankName != "" &&
-		bankAccount != ""
-	if !showBankAccount {
+	showBankAccount := paymentSetting.ShowBankAccount
+	bankAccountName := ""
+	bankName := ""
+	bankAccount := ""
+	if showBankAccount {
+		bankAccountName = strings.TrimSpace(paymentSetting.BankAccountName)
+		bankName = strings.TrimSpace(paymentSetting.BankName)
+		bankAccount = strings.TrimSpace(paymentSetting.BankAccount)
+	} else {
 		bankAccountName = ""
 		bankName = ""
 		bankAccount = ""

@@ -104,6 +104,13 @@ const RechargeCard = ({
   const [activeTab, setActiveTab] = useState('topup');
   const shouldShowSubscription =
     !subscriptionLoading && subscriptionPlans.length > 0;
+  const hasVisibleBankInfo =
+    topupInfo?.show_bank_account &&
+    [
+      topupInfo?.bank_account_name,
+      topupInfo?.bank_name,
+      topupInfo?.bank_account,
+    ].filter(Boolean).length > 0;
 
   useEffect(() => {
     if (initialTabSetRef.current) return;
@@ -117,42 +124,43 @@ const RechargeCard = ({
       setActiveTab('topup');
     }
   }, [shouldShowSubscription, activeTab]);
-  const renderBankInfoItem = (label, value, highlight = false) => (
-    <div className='rounded-xl bg-white/10 px-3 py-3'>
-      <div className='flex items-start justify-between gap-3'>
-        <div className='min-w-0 flex-1'>
-          <div
-            style={{
-              color: 'rgba(255,255,255,0.72)',
-              fontSize: '12px',
-              marginBottom: '4px',
-            }}
-          >
-            {label}
+  const renderBankInfoItem = (label, value, highlight = false) =>
+    !value ? null : (
+      <div className='rounded-xl bg-white/10 px-3 py-3'>
+        <div className='flex items-start justify-between gap-3'>
+          <div className='min-w-0 flex-1'>
+            <div
+              style={{
+                color: 'rgba(255,255,255,0.72)',
+                fontSize: '12px',
+                marginBottom: '4px',
+              }}
+            >
+              {label}
+            </div>
+            <div
+              className='break-all'
+              style={{
+                fontSize: highlight ? '20px' : '16px',
+                fontWeight: highlight ? 700 : 600,
+                letterSpacing: highlight ? '0.12em' : 'normal',
+                lineHeight: 1.5,
+              }}
+            >
+              {value}
+            </div>
           </div>
-          <div
-            className='break-all'
-            style={{
-              fontSize: highlight ? '20px' : '16px',
-              fontWeight: highlight ? 700 : 600,
-              letterSpacing: highlight ? '0.12em' : 'normal',
-              lineHeight: 1.5,
-            }}
+          <Button
+            size='small'
+            theme='light'
+            type='tertiary'
+            onClick={() => onCopyBankField(label, value)}
           >
-            {value || '-'}
-          </div>
+            {t('复制')}
+          </Button>
         </div>
-        <Button
-          size='small'
-          theme='light'
-          type='tertiary'
-          onClick={() => onCopyBankField(label, value)}
-        >
-          {t('复制')}
-        </Button>
       </div>
-    </div>
-  );
+    );
 
   const topupContent = (
     <Space vertical style={{ width: '100%' }}>
@@ -258,7 +266,7 @@ const RechargeCard = ({
           </div>
         }
       >
-        {topupInfo?.show_bank_account && topupInfo?.bank_account && (
+        {hasVisibleBankInfo && (
           <Card
             className='!rounded-xl w-full !mb-4'
             bodyStyle={{ padding: '16px' }}
@@ -279,7 +287,7 @@ const RechargeCard = ({
                       fontSize: '14px',
                     }}
                   >
-                    {t('对公银行卡账号')}
+                    {t('银行卡信息')}
                   </Text>
                   <div
                     style={{
@@ -297,7 +305,7 @@ const RechargeCard = ({
                 {renderBankInfoItem(t('账户名称'), topupInfo.bank_account_name)}
                 {renderBankInfoItem(t('开户银行'), topupInfo.bank_name)}
                 {renderBankInfoItem(
-                  t('对公银行卡账号'),
+                  t('银行卡账号'),
                   topupInfo.bank_account,
                   true,
                 )}

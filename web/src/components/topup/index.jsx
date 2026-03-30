@@ -540,18 +540,24 @@ const TopUp = () => {
   };
 
   const handleCopyBankInfo = async () => {
-    if (!topupInfo.bank_account) {
-      showError(t('暂无可复制的对公银行卡信息'));
+    const bankInfoItems = [
+      topupInfo.bank_account_name
+        ? `${t('账户名称')}：${topupInfo.bank_account_name}`
+        : null,
+      topupInfo.bank_name ? `${t('开户银行')}：${topupInfo.bank_name}` : null,
+      topupInfo.bank_account
+        ? `${t('银行卡账号')}：${topupInfo.bank_account}`
+        : null,
+    ].filter(Boolean);
+
+    if (bankInfoItems.length === 0) {
+      showError(t('暂无可复制的银行卡信息'));
       return;
     }
-    const bankInfoText = [
-      `${t('账户名称')}：${topupInfo.bank_account_name || '-'}`,
-      `${t('开户银行')}：${topupInfo.bank_name || '-'}`,
-      `${t('对公银行卡账号')}：${topupInfo.bank_account}`,
-    ].join('\n');
+    const bankInfoText = bankInfoItems.join('\n');
     const ok = await copy(bankInfoText);
     if (ok) {
-      showSuccess(t('对公银行卡信息已复制到剪贴板'));
+      showSuccess(t('银行卡信息已复制到剪贴板'));
     } else {
       showError(t('复制失败'));
     }

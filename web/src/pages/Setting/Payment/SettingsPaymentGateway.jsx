@@ -110,17 +110,6 @@ export default function SettingsPaymentGateway(props) {
     const bankAccountName = (inputs.BankAccountName || '').trim();
     const bankName = (inputs.BankName || '').trim();
     const bankAccount = (inputs.BankAccount || '').trim();
-
-    if (
-      inputs.ShowBankAccount &&
-      (bankAccountName === '' || bankName === '' || bankAccount === '')
-    ) {
-      showError(
-        t('开启显示对公银行卡信息后，账户名称、开户银行和银行卡号都不能为空'),
-      );
-      return;
-    }
-
     const payConfigChanged =
       originInputs['PayAddress'] !== inputs.PayAddress ||
       originInputs['CustomCallbackAddress'] !== inputs.CustomCallbackAddress ||
@@ -398,7 +387,7 @@ export default function SettingsPaymentGateway(props) {
                 field='ShowBankAccount'
                 label={t('显示对公银行卡信息')}
                 extraText={t(
-                  '仅控制钱包管理页面是否展示，不影响支付回调和在线支付流程',
+                  '仅控制钱包管理页面是否展示，不影响支付回调和在线支付流程；以下三个字段均为选填，钱包管理页面只显示已填写的项目',
                 )}
               />
             </Col>
@@ -434,7 +423,7 @@ export default function SettingsPaymentGateway(props) {
                 label={t('对公银行卡账号')}
                 placeholder={t('请输入对公银行卡账号')}
                 extraText={t(
-                  '这里始终可编辑；开启展示后，钱包管理页面会展示完整转账信息，并支持单项复制和整段复制',
+                  '这里始终可编辑；三个字段均为选填，开启展示后，钱包管理页面只显示已填写的项目，并支持单项复制和整段复制',
                 )}
               />
             </Col>
