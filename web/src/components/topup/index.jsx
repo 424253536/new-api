@@ -103,6 +103,10 @@ const TopUp = () => {
   const [topupInfo, setTopupInfo] = useState({
     amount_options: [],
     discount: {},
+    show_bank_account: false,
+    bank_account_name: '',
+    bank_name: '',
+    bank_account: '',
   });
 
   const topUp = async () => {
@@ -389,6 +393,10 @@ const TopUp = () => {
         setTopupInfo({
           amount_options: data.amount_options || [],
           discount: data.discount || {},
+          show_bank_account: data.show_bank_account || false,
+          bank_account_name: data.bank_account_name || '',
+          bank_name: data.bank_name || '',
+          bank_account: data.bank_account || '',
         });
 
         // 处理支付方式
@@ -529,6 +537,37 @@ const TopUp = () => {
   const handleAffLinkClick = async () => {
     await copy(affLink);
     showSuccess(t('邀请链接已复制到剪切板'));
+  };
+
+  const handleCopyBankInfo = async () => {
+    if (!topupInfo.bank_account) {
+      showError(t('暂无可复制的对公银行卡信息'));
+      return;
+    }
+    const bankInfoText = [
+      `${t('账户名称')}：${topupInfo.bank_account_name || '-'}`,
+      `${t('开户银行')}：${topupInfo.bank_name || '-'}`,
+      `${t('对公银行卡账号')}：${topupInfo.bank_account}`,
+    ].join('\n');
+    const ok = await copy(bankInfoText);
+    if (ok) {
+      showSuccess(t('对公银行卡信息已复制到剪贴板'));
+    } else {
+      showError(t('复制失败'));
+    }
+  };
+
+  const handleCopyBankField = async (label, value) => {
+    if (!value) {
+      showError(`${label}${t('暂无可复制内容')}`);
+      return;
+    }
+    const ok = await copy(value);
+    if (ok) {
+      showSuccess(`${label}${t('已复制到剪贴板')}`);
+    } else {
+      showError(t('复制失败'));
+    }
   };
 
   useEffect(() => {
@@ -775,6 +814,8 @@ const TopUp = () => {
           activeSubscriptions={activeSubscriptions}
           allSubscriptions={allSubscriptions}
           reloadSubscriptionSelf={getSubscriptionSelf}
+          onCopyBankInfo={handleCopyBankInfo}
+          onCopyBankField={handleCopyBankField}
         />
         <InvitationCard
           t={t}

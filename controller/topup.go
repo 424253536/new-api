@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,6 +26,19 @@ import (
 func GetTopUpInfo(c *gin.Context) {
 	// 获取支付方式
 	payMethods := operation_setting.PayMethods
+	paymentSetting := operation_setting.GetPaymentSetting()
+	bankAccountName := strings.TrimSpace(paymentSetting.BankAccountName)
+	bankName := strings.TrimSpace(paymentSetting.BankName)
+	bankAccount := strings.TrimSpace(paymentSetting.BankAccount)
+	showBankAccount := paymentSetting.ShowBankAccount &&
+		bankAccountName != "" &&
+		bankName != "" &&
+		bankAccount != ""
+	if !showBankAccount {
+		bankAccountName = ""
+		bankName = ""
+		bankAccount = ""
+	}
 
 	// 如果启用了 Stripe 支付，添加到支付方法列表
 	if setting.StripeApiSecret != "" && setting.StripeWebhookSecret != "" && setting.StripePriceId != "" {
@@ -56,8 +70,12 @@ func GetTopUpInfo(c *gin.Context) {
 		"pay_methods":         payMethods,
 		"min_topup":           operation_setting.MinTopUp,
 		"stripe_min_topup":    setting.StripeMinTopUp,
-		"amount_options":      operation_setting.GetPaymentSetting().AmountOptions,
-		"discount":            operation_setting.GetPaymentSetting().AmountDiscount,
+		"amount_options":      paymentSetting.AmountOptions,
+		"discount":            paymentSetting.AmountDiscount,
+		"show_bank_account":   showBankAccount,
+		"bank_account_name":   bankAccountName,
+		"bank_name":           bankName,
+		"bank_account":        bankAccount,
 	}
 	common.ApiSuccess(c, data)
 }

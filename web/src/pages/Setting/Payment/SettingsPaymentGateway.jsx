@@ -43,6 +43,10 @@ export default function SettingsPaymentGateway(props) {
     PayMethods: '',
     AmountOptions: '',
     AmountDiscount: '',
+    ShowBankAccount: false,
+    BankAccountName: '',
+    BankName: '',
+    BankAccount: '',
   });
   const [originInputs, setOriginInputs] = useState({});
   const formApiRef = useRef(null);
@@ -66,6 +70,10 @@ export default function SettingsPaymentGateway(props) {
         PayMethods: props.options.PayMethods || '',
         AmountOptions: props.options.AmountOptions || '',
         AmountDiscount: props.options.AmountDiscount || '',
+        ShowBankAccount: !!props.options.ShowBankAccount,
+        BankAccountName: props.options.BankAccountName || '',
+        BankName: props.options.BankName || '',
+        BankAccount: props.options.BankAccount || '',
       };
 
       // 美化 JSON 展示
@@ -99,7 +107,35 @@ export default function SettingsPaymentGateway(props) {
   };
 
   const submitPayAddress = async () => {
-    if (props.options.ServerAddress === '') {
+    const bankAccountName = (inputs.BankAccountName || '').trim();
+    const bankName = (inputs.BankName || '').trim();
+    const bankAccount = (inputs.BankAccount || '').trim();
+
+    if (
+      inputs.ShowBankAccount &&
+      (bankAccountName === '' || bankName === '' || bankAccount === '')
+    ) {
+      showError(
+        t('开启显示对公银行卡信息后，账户名称、开户银行和银行卡号都不能为空'),
+      );
+      return;
+    }
+
+    const payConfigChanged =
+      originInputs['PayAddress'] !== inputs.PayAddress ||
+      originInputs['CustomCallbackAddress'] !== inputs.CustomCallbackAddress ||
+      originInputs['EpayId'] !== inputs.EpayId ||
+      originInputs['EpayKey'] !== inputs.EpayKey;
+    const requiresServerAddress =
+      payConfigChanged &&
+      [
+        inputs.PayAddress,
+        inputs.CustomCallbackAddress,
+        inputs.EpayId,
+        inputs.EpayKey,
+      ].some((value) => value !== undefined && value !== '');
+
+    if (requiresServerAddress && props.options.ServerAddress === '') {
       showError(t('请先填写服务器地址'));
       return;
     }
@@ -140,9 +176,14 @@ export default function SettingsPaymentGateway(props) {
 
     setLoading(true);
     try {
-      const options = [
-        { key: 'PayAddress', value: removeTrailingSlash(inputs.PayAddress) },
-      ];
+      const options = [];
+
+      if (originInputs['PayAddress'] !== inputs.PayAddress) {
+        options.push({
+          key: 'PayAddress',
+          value: removeTrailingSlash(inputs.PayAddress),
+        });
+      }
 
       if (inputs.EpayId !== '') {
         options.push({ key: 'EpayId', value: inputs.EpayId });
@@ -178,6 +219,30 @@ export default function SettingsPaymentGateway(props) {
         options.push({
           key: 'payment_setting.amount_discount',
           value: inputs.AmountDiscount,
+        });
+      }
+      if (originInputs['ShowBankAccount'] !== inputs.ShowBankAccount) {
+        options.push({
+          key: 'payment_setting.show_bank_account',
+          value: inputs.ShowBankAccount,
+        });
+      }
+      if (originInputs['BankAccountName'] !== bankAccountName) {
+        options.push({
+          key: 'payment_setting.bank_account_name',
+          value: bankAccountName,
+        });
+      }
+      if (originInputs['BankName'] !== bankName) {
+        options.push({
+          key: 'payment_setting.bank_name',
+          value: bankName,
+        });
+      }
+      if (originInputs['BankAccount'] !== bankAccount) {
+        options.push({
+          key: 'payment_setting.bank_account',
+          value: bankAccount,
         });
       }
 
@@ -319,6 +384,57 @@ export default function SettingsPaymentGateway(props) {
                 autosize
                 extraText={t(
                   '设置不同充值金额对应的折扣，键为充值金额，值为折扣率，例如：{"100": 0.95, "200": 0.9, "500": 0.85}',
+                )}
+              />
+            </Col>
+          </Row>
+
+          <Row
+            gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+            style={{ marginTop: 16 }}
+          >
+            <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Form.Switch
+                field='ShowBankAccount'
+                label={t('显示对公银行卡信息')}
+                extraText={t(
+                  '仅控制钱包管理页面是否展示，不影响支付回调和在线支付流程',
+                )}
+              />
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Form.Input
+                field='BankAccountName'
+                label={t('账户名称')}
+                placeholder={t('请输入对公账户名称')}
+                extraText={t(
+                  '建议填写开户主体全称，避免用户转账时收款人信息填错',
+                )}
+              />
+            </Col>
+          </Row>
+
+          <Row
+            gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+            style={{ marginTop: 16 }}
+          >
+            <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Form.Input
+                field='BankName'
+                label={t('开户银行')}
+                placeholder={t('请输入开户银行')}
+                extraText={t(
+                  '建议填写银行全称或完整开户行名称，方便用户准确转账',
+                )}
+              />
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Form.Input
+                field='BankAccount'
+                label={t('对公银行卡账号')}
+                placeholder={t('请输入对公银行卡账号')}
+                extraText={t(
+                  '这里始终可编辑；开启展示后，钱包管理页面会展示完整转账信息，并支持单项复制和整段复制',
                 )}
               />
             </Col>

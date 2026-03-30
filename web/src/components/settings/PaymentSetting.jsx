@@ -40,6 +40,10 @@ const PaymentSetting = () => {
     PayMethods: '',
     AmountOptions: '',
     AmountDiscount: '',
+    ShowBankAccount: false,
+    BankAccountName: '',
+    BankName: '',
+    BankAccount: '',
 
     StripeApiSecret: '',
     StripeWebhookSecret: '',
@@ -93,6 +97,18 @@ const PaymentSetting = () => {
               console.error('解析AmountDiscount出错:', error);
               newInputs['AmountDiscount'] = item.value;
             }
+            break;
+          case 'payment_setting.show_bank_account':
+            newInputs['ShowBankAccount'] = toBoolean(item.value);
+            break;
+          case 'payment_setting.bank_account_name':
+            newInputs['BankAccountName'] = item.value;
+            break;
+          case 'payment_setting.bank_name':
+            newInputs['BankName'] = item.value;
+            break;
+          case 'payment_setting.bank_account':
+            newInputs['BankAccount'] = item.value;
             break;
           case 'Price':
           case 'MinTopUp':

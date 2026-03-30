@@ -94,6 +94,8 @@ const RechargeCard = ({
   activeSubscriptions = [],
   allSubscriptions = [],
   reloadSubscriptionSelf,
+  onCopyBankInfo,
+  onCopyBankField,
 }) => {
   const onlineFormApiRef = useRef(null);
   const redeemFormApiRef = useRef(null);
@@ -115,6 +117,43 @@ const RechargeCard = ({
       setActiveTab('topup');
     }
   }, [shouldShowSubscription, activeTab]);
+  const renderBankInfoItem = (label, value, highlight = false) => (
+    <div className='rounded-xl bg-white/10 px-3 py-3'>
+      <div className='flex items-start justify-between gap-3'>
+        <div className='min-w-0 flex-1'>
+          <div
+            style={{
+              color: 'rgba(255,255,255,0.72)',
+              fontSize: '12px',
+              marginBottom: '4px',
+            }}
+          >
+            {label}
+          </div>
+          <div
+            className='break-all'
+            style={{
+              fontSize: highlight ? '20px' : '16px',
+              fontWeight: highlight ? 700 : 600,
+              letterSpacing: highlight ? '0.12em' : 'normal',
+              lineHeight: 1.5,
+            }}
+          >
+            {value || '-'}
+          </div>
+        </div>
+        <Button
+          size='small'
+          theme='light'
+          type='tertiary'
+          onClick={() => onCopyBankField(label, value)}
+        >
+          {t('复制')}
+        </Button>
+      </div>
+    </div>
+  );
+
   const topupContent = (
     <Space vertical style={{ width: '100%' }}>
       {/* 统计数据 */}
@@ -219,6 +258,64 @@ const RechargeCard = ({
           </div>
         }
       >
+        {topupInfo?.show_bank_account && topupInfo?.bank_account && (
+          <Card
+            className='!rounded-xl w-full !mb-4'
+            bodyStyle={{ padding: '16px' }}
+          >
+            <div
+              className='rounded-2xl p-4 text-white'
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(var(--semi-blue-6), 1), rgba(var(--semi-cyan-5), 1))',
+              }}
+            >
+              <div className='flex items-center justify-between mb-4'>
+                <div>
+                  <Text
+                    strong
+                    style={{
+                      color: 'rgba(255,255,255,0.92)',
+                      fontSize: '14px',
+                    }}
+                  >
+                    {t('对公银行卡账号')}
+                  </Text>
+                  <div
+                    style={{
+                      color: 'rgba(255,255,255,0.72)',
+                      fontSize: '12px',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {t('如需线下转账，可复制完整转账信息后按提示完成汇款')}
+                  </div>
+                </div>
+                <CreditCard size={20} />
+              </div>
+              <div className='space-y-3'>
+                {renderBankInfoItem(t('账户名称'), topupInfo.bank_account_name)}
+                {renderBankInfoItem(t('开户银行'), topupInfo.bank_name)}
+                {renderBankInfoItem(
+                  t('对公银行卡账号'),
+                  topupInfo.bank_account,
+                  true,
+                )}
+              </div>
+            </div>
+            <div className='flex items-center justify-between mt-4 gap-3'>
+              <Text type='secondary'>
+                {t(
+                  '该信息由管理员配置，支持单项复制和整段复制，可降低填写错误的风险',
+                )}
+              </Text>
+              <Button theme='solid' onClick={onCopyBankInfo}>
+                {t('复制转账信息')}
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* 在线充值表单 */}
         {statusLoading ? (
           <div className='py-8 flex justify-center'>
@@ -293,7 +390,8 @@ const RechargeCard = ({
                       {payMethods && payMethods.length > 0 ? (
                         <Space wrap>
                           {payMethods.map((payMethod) => {
-                            const minTopupVal = Number(payMethod.min_topup) || 0;
+                            const minTopupVal =
+                              Number(payMethod.min_topup) || 0;
                             const isStripe = payMethod.type === 'stripe';
                             const disabled =
                               (!enableOnlineTopUp && !isStripe) ||
@@ -389,7 +487,9 @@ const RechargeCard = ({
                   <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
                     {presetAmounts.map((preset, index) => {
                       const discount =
-                        preset.discount || topupInfo?.discount?.[preset.value] || 1.0;
+                        preset.discount ||
+                        topupInfo?.discount?.[preset.value] ||
+                        1.0;
                       const originalPrice = preset.value * priceRatio;
                       const discountedPrice = originalPrice * discount;
                       const hasDiscount = discount < 1.0;
@@ -405,7 +505,7 @@ const RechargeCard = ({
                           const s = JSON.parse(statusStr);
                           usdRate = s?.usd_exchange_rate || 7;
                         }
-                      } catch (e) { }
+                      } catch (e) {}
 
                       let displayValue = preset.value; // 显示的数量
                       let displayActualPay = actualPay;
@@ -456,7 +556,10 @@ const RechargeCard = ({
                               {hasDiscount && (
                                 <Tag style={{ marginLeft: 4 }} color='green'>
                                   {t('折').includes('off')
-                                    ? ((1 - parseFloat(discount)) * 100).toFixed(1)
+                                    ? (
+                                        (1 - parseFloat(discount)) *
+                                        100
+                                      ).toFixed(1)
                                     : (discount * 10).toFixed(1)}
                                   {t('折')}
                                 </Tag>
