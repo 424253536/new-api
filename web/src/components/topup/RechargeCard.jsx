@@ -34,6 +34,7 @@ import {
   Tooltip,
   Tabs,
   TabPane,
+  Modal,
 } from '@douyinfe/semi-ui';
 import { SiAlipay, SiWechat, SiStripe } from 'react-icons/si';
 import {
@@ -102,6 +103,7 @@ const RechargeCard = ({
   const initialTabSetRef = useRef(false);
   const showAmountSkeleton = useMinimumLoadingTime(amountLoading);
   const [activeTab, setActiveTab] = useState('topup');
+  const [paymentQrVisible, setPaymentQrVisible] = useState(false);
   const shouldShowSubscription =
     !subscriptionLoading && subscriptionPlans.length > 0;
   const hasVisibleBankInfo =
@@ -266,6 +268,88 @@ const RechargeCard = ({
           </div>
         }
       >
+        <Card
+          className='!rounded-xl w-full !mb-4'
+          bodyStyle={{ padding: '20px' }}
+        >
+          <div
+            className='rounded-2xl p-5'
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(var(--semi-blue-0), 1), rgba(var(--semi-cyan-0), 1))',
+              border: '1px solid var(--semi-color-primary-light-default)',
+            }}
+          >
+            <div className='flex items-center justify-between mb-4'>
+              <div>
+                <Text strong style={{ fontSize: '16px' }}>
+                  {t('个人收款二维码')}
+                </Text>
+                <div
+                  style={{
+                    color: 'var(--semi-color-text-2)',
+                    fontSize: '12px',
+                    marginTop: '4px',
+                  }}
+                >
+                  {t(
+                    '请使用支付宝、微信或其他支持扫码的应用进行转账，点击图片可放大查看',
+                  )}
+                </div>
+              </div>
+              <CreditCard
+                size={20}
+                style={{ color: 'var(--semi-color-primary)' }}
+              />
+            </div>
+            <div className='flex flex-col items-center justify-center'>
+              <img
+                src='/personal-payment-qr.png'
+                alt={t('个人收款二维码')}
+                onClick={() => setPaymentQrVisible(true)}
+                style={{
+                  width: '260px',
+                  maxWidth: '100%',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.16)',
+                  border: '1px solid var(--semi-color-border)',
+                  background: '#fff',
+                  padding: '10px',
+                }}
+              />
+              <Text
+                type='secondary'
+                style={{ marginTop: '12px', textAlign: 'center' }}
+              >
+                {t('点击二维码查看大图')}
+              </Text>
+            </div>
+          </div>
+          <Modal
+            title={t('个人收款二维码')}
+            visible={paymentQrVisible}
+            footer={null}
+            centered
+            width={560}
+            onCancel={() => setPaymentQrVisible(false)}
+            maskClosable={true}
+          >
+            <div className='flex justify-center'>
+              <img
+                src='/personal-payment-qr.png'
+                alt={t('个人收款二维码')}
+                style={{
+                  width: '100%',
+                  maxWidth: '420px',
+                  borderRadius: '16px',
+                  background: '#fff',
+                }}
+              />
+            </div>
+          </Modal>
+        </Card>
+
         {hasVisibleBankInfo && (
           <Card
             className='!rounded-xl w-full !mb-4'
