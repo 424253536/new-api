@@ -19,7 +19,7 @@ data:
   # HTTPS 控制台：启用 Secure Refresh Cookie 与严格的 refresh/logout Origin 校验。
   # 必须是精确的 HTTPS Origin，不支持通配符和路径。
   SESSION_COOKIE_SECURE: "true"
-  SESSION_COOKIE_TRUSTED_URL: "https://api.101zj.com"
+  SESSION_COOKIE_TRUSTED_URL: "https://router.101zj.com"
 
   # 只有需要记录真实客户端 IP 时才配。不配会信任回环和 RFC1918 网段并在启动时告警。
   # TRUSTED_PROXIES: "172.16.0.0/12"

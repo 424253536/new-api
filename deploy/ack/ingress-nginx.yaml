@@ -17,10 +17,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - api.101zj.com
+        - router.101zj.com
       secretName: new-api-tls
   rules:
-    - host: api.101zj.com
+    - host: router.101zj.com
       http:
         paths:
           - path: /
