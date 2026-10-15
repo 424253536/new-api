@@ -1,17 +1,15 @@
-# Create the session secret once before applying this file:
-#   openssl rand -hex 32
-#   kubectl -n new-api create secret generic new-api-secret \
-#     --from-literal=SESSION_SECRET=<random hex>
+# 会话密钥由 deploy/ack/release.ps1 在首次发布时自动创建（已存在则不动，
+# 轮换 SESSION_SECRET 会让所有登录态失效）。
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: new-api
-  namespace: new-api
+  labels:
+    app.kubernetes.io/name: new-api
 spec:
   replicas: 1
-  # The cloud disk is ReadWriteOnce. A replacement Pod cannot attach it until
-  # the old Pod is gone, so a rolling update would deadlock in
-  # ContainerCreating: SQLite deployments must recreate the Pod.
+  # 云盘是 ReadWriteOnce，新 Pod 必须等旧 Pod 释放卷才能挂上。
+  # 用滚动更新会卡在 ContainerCreating，所以 SQLite 方案只能用 Recreate。
   strategy:
     type: Recreate
   selector:
@@ -21,16 +19,16 @@ spec:
     metadata:
       labels:
         app: new-api
+        app.kubernetes.io/name: new-api
     spec:
-      # Must stay above SHUTDOWN_TIMEOUT_SECONDS so in-flight SSE streams drain.
+      # 必须大于 SHUTDOWN_TIMEOUT_SECONDS，否则长 SSE 流来不及收尾。
       terminationGracePeriodSeconds: 150
-      # Uncomment if the ACR repository is not covered by the
-      # aliyun-acr-credential-helper component.
+      # 若 ACR 仓库未被 aliyun-acr-credential-helper 覆盖，取消注释：
       # imagePullSecrets:
       #   - name: acr-credential
       containers:
         - name: new-api
-          image: registry.cn-hangzhou.aliyuncs.com/<your-namespace>/new-api:v1.0.0-9cab9ca
+          image: registry.cn-shanghai.aliyuncs.com/zhike/new-api:prod-v1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -45,25 +43,34 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-          # The default log dir is ./logs, which resolves to /data/logs and is
-          # therefore persisted. Do not pass --log-dir.
+          # 默认日志目录 ./logs 解析为 /data/logs，跟数据一起持久化。不要传 --log-dir。
           volumeMounts:
             - name: data
               mountPath: /data
           startupProbe:
-            httpGet: { path: /api/status, port: http }
+            httpGet:
+              path: /api/status
+              port: http
             failureThreshold: 40
             periodSeconds: 5
           readinessProbe:
-            httpGet: { path: /api/status, port: http }
+            httpGet:
+              path: /api/status
+              port: http
             periodSeconds: 10
           livenessProbe:
-            httpGet: { path: /api/status, port: http }
+            httpGet:
+              path: /api/status
+              port: http
             periodSeconds: 20
             failureThreshold: 3
           resources:
-            requests: { cpu: "250m", memory: "256Mi" }
-            limits: { cpu: "1", memory: "1Gi" }
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
           lifecycle:
             preStop:
               exec:

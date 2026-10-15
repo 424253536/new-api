@@ -1,0 +1,21 @@
+# SQLite 跑在 ESSD 云盘上。
+#
+# 镜像的 WORKDIR 是 /data，SQLite 默认路径解析为 /data/one-api.db，
+# 所以 /data 必须是持久卷，否则每次 Pod 重建都会回到初始化向导。
+#
+# 必须用云盘类 StorageClass（ReadWriteOnce），不要用 NAS/NFS：
+# SQLite 的 WAL 锁在网络文件系统上不安全。
+# 按集群实际 StorageClass 调整，ACK 默认 ESSD 可用 alicloud-disk-essd。
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: new-api-data
+  labels:
+    app.kubernetes.io/name: new-api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: alicloud-disk-essd
+  resources:
+    requests:
+      storage: 20Gi

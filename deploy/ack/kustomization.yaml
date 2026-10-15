@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: new-api
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress-alb.yaml
+  # 集群用 Nginx Ingress 时，把上面一行换成 ingress-nginx.yaml
+# 发版只改 newTag，然后 kubectl apply -k deploy/ack
+images:
+  - name: registry.cn-shanghai.aliyuncs.com/zhike/new-api
+    newTag: prod-v1.0.0
