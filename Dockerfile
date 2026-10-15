@@ -14,6 +14,10 @@ ARG TARGETOS
 ARG TARGETARCH
 ENV GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
 ENV GOEXPERIMENT=greenteagc
+# proxy.golang.org is unreachable from some networks; default to reachable
+# mirrors. Override with --build-arg GOPROXY=https://proxy.golang.org,direct
+ARG GOPROXY=https://mirrors.aliyun.com/goproxy/,https://goproxy.cn,direct
+ENV GOPROXY=${GOPROXY}
 
 WORKDIR /build
 
