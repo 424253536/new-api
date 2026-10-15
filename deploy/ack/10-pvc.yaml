@@ -1,0 +1,22 @@
+# SQLite on an Alibaba Cloud disk.
+#
+# The image runs with WORKDIR /data and the built-in SQLite default resolves to
+# /data/one-api.db, so /data has to be a real volume or every Pod recreation
+# resets the instance to the setup wizard.
+#
+# Pick storageClassName from `kubectl get sc`. Use a cloud-disk class
+# (ReadWriteOnce). Do NOT use NAS/NFS: SQLite WAL locking is unsafe on network
+# filesystems. On a multi-zone cluster prefer a class with
+# volumeBindingMode: WaitForFirstConsumer so the disk is provisioned in the
+# zone the Pod actually lands in.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: new-api-data
+  namespace: new-api
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: alicloud-disk-essd
+  resources:
+    requests:
+      storage: 20Gi

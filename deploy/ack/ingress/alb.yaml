@@ -1,0 +1,27 @@
+# ALB Ingress (ACK managed load balancer).
+# Replace the certificate id and the host, then:
+#   kubectl apply -f deploy/ack/ingress/alb.yaml
+#
+# Long streaming (SSE) responses: raise the connection idle timeout on the ALB
+# listener in the console (default is short) if completions get cut off.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: new-api
+  namespace: new-api
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol: "http"
+    alb.ingress.kubernetes.io/certificate-id: "<your-alb-certificate-id>"
+spec:
+  ingressClassName: alb
+  rules:
+    - host: newapi.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: new-api
+                port:
+                  number: 80

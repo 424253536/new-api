@@ -1,0 +1,33 @@
+# Nginx Ingress variant. Use this instead of ingress/alb.yaml when the cluster
+# runs the Nginx Ingress controller:
+#   kubectl apply -f deploy/ack/ingress/nginx.yaml
+#
+# Buffering off and long read/send timeouts are required, otherwise streaming
+# completions arrive chopped up or truncated.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: new-api
+  namespace: new-api
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # MAX_REQUEST_BODY_MB defaults to 128.
+    nginx.ingress.kubernetes.io/proxy-body-size: "128m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: ["newapi.example.com"]
+      secretName: new-api-tls
+  rules:
+    - host: newapi.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: new-api
+                port:
+                  number: 80

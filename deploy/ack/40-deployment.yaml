@@ -1,0 +1,74 @@
+# Create the session secret once before applying this file:
+#   openssl rand -hex 32
+#   kubectl -n new-api create secret generic new-api-secret \
+#     --from-literal=SESSION_SECRET=<random hex>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: new-api
+  namespace: new-api
+spec:
+  replicas: 1
+  # The cloud disk is ReadWriteOnce. A replacement Pod cannot attach it until
+  # the old Pod is gone, so a rolling update would deadlock in
+  # ContainerCreating: SQLite deployments must recreate the Pod.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: new-api
+  template:
+    metadata:
+      labels:
+        app: new-api
+    spec:
+      # Must stay above SHUTDOWN_TIMEOUT_SECONDS so in-flight SSE streams drain.
+      terminationGracePeriodSeconds: 150
+      # Uncomment if the ACR repository is not covered by the
+      # aliyun-acr-credential-helper component.
+      # imagePullSecrets:
+      #   - name: acr-credential
+      containers:
+        - name: new-api
+          image: registry.cn-hangzhou.aliyuncs.com/<your-namespace>/new-api:v1.0.0-9cab9ca
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: new-api-config
+            - secretRef:
+                name: new-api-secret
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          # The default log dir is ./logs, which resolves to /data/logs and is
+          # therefore persisted. Do not pass --log-dir.
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          startupProbe:
+            httpGet: { path: /api/status, port: http }
+            failureThreshold: 40
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: { path: /api/status, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/status, port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: { cpu: "250m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: new-api-data
